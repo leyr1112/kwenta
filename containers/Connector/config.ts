@@ -25,7 +25,7 @@ const { chains, provider } = configureChains(
 		infuraProvider({
 			apiKey: process.env.NEXT_PUBLIC_INFURA_PROJECT_ID!,
 			stallTimeout: 5000,
-			priority: process.env.NEXT_PUBLIC_PROVIDER_ID === 'INFURA' ? 0 : 2,
+			priority: 1,
 		}),
 		jsonRpcProvider({
 			rpc: (networkChain) => {
@@ -40,7 +40,7 @@ const { chains, provider } = configureChains(
 					  };
 			},
 			stallTimeout: 5000,
-			priority: 1,
+			priority: 2,
 		}),
 		publicProvider({ stallTimeout: 5000, priority: 5 }),
 	]
