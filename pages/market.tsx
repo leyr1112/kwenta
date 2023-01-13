@@ -104,7 +104,7 @@ function TradePanelDesktop({ walletAddress, account }: TradePanelProps) {
 		return account.status === 'error' && !account.crossMarginAddress ? (
 			<div>
 				<Error
-					message={t('futures.market.trade.cross-margin.account-query-failed')}
+					message={account.error || t('futures.market.trade.cross-margin.account-query-failed')}
 					retryButton={{
 						onClick: () => handleRefetch('cross-margin-account-change', 5),
 						label: 'Retry',

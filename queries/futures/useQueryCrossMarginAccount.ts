@@ -72,6 +72,7 @@ export default function useQueryCrossMarginAccount() {
 				return accounts;
 			} catch (err) {
 				// Logs query fails with some wallets so we fallback to subgraph
+				throw err;
 				return queryAccountsFromSubgraph(network.id as NetworkId, walletAddress);
 			}
 		};
@@ -102,17 +103,17 @@ export default function useQueryCrossMarginAccount() {
 			? storedCrossMarginAccounts[crossMarginContractFactory?.address]?.[walletAddress]
 			: null;
 
-		if (existing) {
-			setFuturesAccount({
-				...futuresAccount,
-				status: 'complete',
-				crossMarginAddress: existing,
-				crossMarginAvailable: true,
-				walletAddress,
-			});
-			dispatch(setCrossMarginAccount(existing));
-			return existing;
-		}
+		// if (existing) {
+		// 	setFuturesAccount({
+		// 		...futuresAccount,
+		// 		status: 'complete',
+		// 		crossMarginAddress: existing,
+		// 		crossMarginAvailable: true,
+		// 		walletAddress,
+		// 	});
+		// 	dispatch(setCrossMarginAccount(existing));
+		// 	return existing;
+		// }
 
 		setFuturesAccount({
 			...futuresAccount,
@@ -166,6 +167,7 @@ export default function useQueryCrossMarginAccount() {
 				logError(err);
 				setFuturesAccount({
 					...futuresAccount,
+					error: err.message,
 					status: 'error',
 				});
 				if (throwOnError) throw err;

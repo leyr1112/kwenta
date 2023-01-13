@@ -171,6 +171,7 @@ export type FuturesAccountState = {
 	walletAddress: string | null;
 	crossMarginAddress: string | null;
 	crossMarginAvailable: boolean;
+	error?: string;
 	status: 'initial-fetch' | 'complete' | 'error' | 'refetching' | 'idle';
 };
 
