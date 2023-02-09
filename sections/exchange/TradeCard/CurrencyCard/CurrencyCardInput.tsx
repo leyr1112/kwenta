@@ -5,10 +5,11 @@ import styled, { css } from 'styled-components';
 
 import Button from 'components/Button';
 import NumericInput from 'components/Input/NumericInput';
+import { FlexDivCol, FlexDivRowCentered } from 'components/layout/flex';
 import Loader from 'components/Loader';
 import useSelectedPriceCurrency from 'hooks/useSelectedPriceCurrency';
-import { CapitalizedText, FlexDivCol, FlexDivRowCentered, numericValueCSS } from 'styles/common';
-import { formatDollars, formatPercent, zeroBN } from 'utils/formatters/number';
+import { CapitalizedText, numericValueCSS } from 'styles/common';
+import { formatDollars, zeroBN } from 'utils/formatters/number';
 
 type CurrencyCardInputProps = {
 	label: string;
@@ -20,7 +21,6 @@ type CurrencyCardInputProps = {
 	onBalanceClick(): void;
 	isLoading: boolean;
 	disableInput: boolean;
-	slippagePercent?: Wei | null;
 	currencyKeySelected: boolean;
 	priceRate?: Wei | number | null;
 };
@@ -50,7 +50,6 @@ const CurrencyCardInput: FC<CurrencyCardInputProps> = memo(
 		onBalanceClick,
 		isLoading,
 		disableInput,
-		slippagePercent,
 		currencyKeySelected,
 		priceRate,
 	}) => {
@@ -80,11 +79,6 @@ const CurrencyCardInput: FC<CurrencyCardInputProps> = memo(
 							currencyKeySelected={currencyKeySelected}
 							priceRate={priceRate}
 						/>
-						<Slippage>
-							{!isLoading &&
-								slippagePercent?.lt(0) &&
-								formatPercent(slippagePercent) + t('exchange.currency-card.slippage')}
-						</Slippage>
 					</FlexDivRowCentered>
 					{isLoading && <StyledLoader width="24px" height="24px" />}
 				</CurrencyAmountContainer>
@@ -177,13 +171,6 @@ const CurrencyAmountValue = styled.div`
 	width: 150px;
 	overflow: hidden;
 	color: ${(props) => props.theme.colors.selectedTheme.button.text.primary};
-`;
-
-const Slippage = styled.div`
-	${numericValueCSS};
-	padding: 0px 8px 2px 8px;
-	font-size: 11px;
-	color: ${(props) => props.theme.colors.selectedTheme.gold};
 `;
 
 export default CurrencyCardInput;

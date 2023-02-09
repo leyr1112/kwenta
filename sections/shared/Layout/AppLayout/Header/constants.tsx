@@ -1,5 +1,6 @@
 import { FunctionComponent } from 'react';
 
+import LinkIconLight from 'assets/svg/app/link-light.svg';
 import { CrossMarginIcon, IsolatedMarginIcon } from 'components/Nav/FuturesIcon';
 import { COMPETITION_ENABLED } from 'constants/competition';
 import { CROSS_MARGIN_ENABLED, DEFAULT_FUTURES_MARGIN_TYPE } from 'constants/defaults';
@@ -8,14 +9,15 @@ import ROUTES from 'constants/routes';
 
 export type Badge = {
 	i18nLabel: string;
-	color: 'yellow' | 'red';
+	color: 'yellow' | 'red' | 'gray';
 };
 
 export type SubMenuLink = {
 	i18nLabel: string;
 	link: string;
-	badge?: Badge;
+	badge?: Badge[];
 	Icon?: FunctionComponent<any>;
+	externalLink?: boolean;
 };
 
 export type MenuLink = {
@@ -87,11 +89,29 @@ export const getMenuLinks = (isMobile: boolean): MenuLinks => [
 					{
 						link: ROUTES.Markets.Home('cross_margin'),
 						i18nLabel: 'header.nav.cross-margin',
-						badge: {
-							i18nLabel: 'header.nav.beta-badge',
-							color: 'yellow',
-						},
+						badge: [
+							{
+								i18nLabel: 'header.nav.beta-badge',
+								color: 'gray',
+							},
+							{
+								i18nLabel: 'header.nav.reward-badge',
+								color: 'yellow',
+							},
+						],
 						Icon: CrossMarginIcon,
+					},
+					{
+						link: EXTERNAL_LINKS.Trade.PerpsV2,
+						externalLink: true,
+						i18nLabel: 'header.nav.v2-alpha',
+						badge: [
+							{
+								i18nLabel: 'header.nav.alpha-badge',
+								color: 'red',
+							},
+						],
+						Icon: LinkIconLight,
 					},
 			  ]
 			: null,

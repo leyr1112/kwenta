@@ -1,25 +1,36 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CellProps } from 'react-table';
 import styled, { css } from 'styled-components';
 
 import Badge from 'components/Badge';
 import Currency from 'components/Currency';
+import { ButtonLoader } from 'components/Loader/Loader';
 import { DesktopOnlyView, MobileOrTabletView } from 'components/Media';
-import Table, { TableNoResults } from 'components/Table';
-import PositionType from 'components/Text/PositionType';
-import { DEFAULT_DELAYED_EXECUTION_BUFFER } from 'constants/defaults';
+import Table, { TableHeader, TableNoResults } from 'components/Table';
+import {
+	DEFAULT_DELAYED_CANCEL_BUFFER,
+	DEFAULT_DELAYED_EXECUTION_BUFFER,
+} from 'constants/defaults';
+import useInterval from 'hooks/useInterval';
 import useIsL2 from 'hooks/useIsL2';
 import useNetworkSwitcher from 'hooks/useNetworkSwitcher';
-import { PositionSide } from 'queries/futures/types';
-import { DelayedOrder } from 'sdk/types/futures';
+import { FuturesMarketKey, PositionSide } from 'sdk/types/futures';
 import { cancelDelayedOrder, executeDelayedOrder } from 'state/futures/actions';
-import { selectMarketAsset, selectMarkets, selectOpenOrders } from 'state/futures/selectors';
+import {
+	selectIsCancellingOrder,
+	selectIsExecutingOrder,
+	selectIsolatedMarginOpenOrders,
+	selectMarketAsset,
+	selectMarkets,
+} from 'state/futures/selectors';
+import { DelayedOrderWithDetails } from 'state/futures/types';
 import { useAppDispatch, useAppSelector } from 'state/hooks';
-import { formatCurrency, formatDollars, suggestedDecimals } from 'utils/formatters/number';
-import { FuturesMarketKey, getDisplayAsset } from 'utils/futures';
+import { formatCurrency, suggestedDecimals } from 'utils/formatters/number';
+import { getDisplayAsset } from 'utils/futures';
 
 import OrderDrawer from '../MobileTrade/drawers/OrderDrawer';
+import PositionType from '../PositionType';
 
 type CountdownTimers = Record<
 	FuturesMarketKey,
@@ -31,29 +42,29 @@ type CountdownTimers = Record<
 
 const OpenOrdersTable: React.FC = () => {
 	const { t } = useTranslation();
-	const { switchToL2 } = useNetworkSwitcher();
 	const dispatch = useAppDispatch();
+	const { switchToL2 } = useNetworkSwitcher();
+	const isL2 = useIsL2();
 
 	const marketAsset = useAppSelector(selectMarketAsset);
+	// TODO: Requires changes to bring back support for cross margin
+	const openOrders = useAppSelector(selectIsolatedMarginOpenOrders);
 	const futuresMarkets = useAppSelector(selectMarkets);
+	const isCancelling = useAppSelector(selectIsCancellingOrder);
+	const isExecuting = useAppSelector(selectIsExecutingOrder);
 
-	const isL2 = useIsL2();
-	const openOrders = useAppSelector(selectOpenOrders);
-
-	const [cancelling, setCancelling] = useState<string | null>(null);
 	const [countdownTimers, setCountdownTimers] = useState<CountdownTimers>();
-	const [selectedOrder, setSelectedOrder] = useState<DelayedOrder | undefined>();
+	const [selectedOrder, setSelectedOrder] = useState<DelayedOrderWithDetails | undefined>();
 
 	const rowsData = useMemo(() => {
 		const ordersWithCancel = openOrders
 			.map((o) => {
 				const market = futuresMarkets.find((m) => m.market === o.marketAddress);
-				const asset = o?.asset ?? '';
-				const timer = countdownTimers && o.marketKey ? countdownTimers[o.marketKey] : null;
+				const timer = countdownTimers ? countdownTimers[o.marketKey] : null;
 				const order = {
 					...o,
-					sizeTxt: formatCurrency(asset, o.size.abs(), {
-						currencyKey: getDisplayAsset(asset) ?? '',
+					sizeTxt: formatCurrency(o.asset, o.size.abs(), {
+						currencyKey: getDisplayAsset(o.asset) ?? '',
 						minDecimals: suggestedDecimals(o.size),
 					}),
 					timeToExecution: timer?.timeToExecution,
@@ -64,9 +75,19 @@ const OpenOrdersTable: React.FC = () => {
 						market?.settings &&
 						timer.timeToExecution === 0 &&
 						timer.timePastExecution >
-							(o.isOffchain
-								? market.settings.offchainDelayedOrderMaxAge
-								: market.settings.maxDelayTimeDelta),
+							DEFAULT_DELAYED_CANCEL_BUFFER +
+								(o.isOffchain
+									? market.settings.offchainDelayedOrderMaxAge
+									: market.settings.maxDelayTimeDelta),
+					isFailed:
+						timer &&
+						market?.settings &&
+						timer.timeToExecution === 0 &&
+						timer.timePastExecution >
+							DEFAULT_DELAYED_EXECUTION_BUFFER +
+								(o.isOffchain
+									? market.settings.offchainDelayedOrderMinAge
+									: market.settings.minDelayTimeDelta),
 					isExecutable:
 						timer &&
 						market?.settings &&
@@ -85,7 +106,13 @@ const OpenOrdersTable: React.FC = () => {
 						);
 					},
 					onExecute: () => {
-						dispatch(executeDelayedOrder(o.marketAddress));
+						dispatch(
+							executeDelayedOrder({
+								marketKey: o.marketKey,
+								marketAddress: o.marketAddress,
+								isOffchain: o.isOffchain,
+							})
+						);
 					},
 				};
 				return order;
@@ -100,34 +127,31 @@ const OpenOrdersTable: React.FC = () => {
 		return ordersWithCancel;
 	}, [openOrders, futuresMarkets, marketAsset, countdownTimers, dispatch]);
 
-	useEffect(() => {
-		const timer = setInterval(() => {
+	useInterval(
+		() => {
 			const newCountdownTimers = rowsData.reduce((acc, order) => {
-				const timeToExecution =
-					Math.floor((order.executableAtTimestamp - Date.now()) / 1000) +
-					DEFAULT_DELAYED_EXECUTION_BUFFER;
+				const timeToExecution = Math.floor((order.executableAtTimestamp - Date.now()) / 1000);
 				const timePastExecution = Math.floor((Date.now() - order.executableAtTimestamp) / 1000);
 
 				// Only updated delayed orders
-				if (order.marketKey) {
-					acc[order.marketKey] = {
-						timeToExecution: Math.max(timeToExecution, 0),
-						timePastExecution: Math.max(timePastExecution, 0),
-					};
-				}
+				acc[order.marketKey] = {
+					timeToExecution: Math.max(timeToExecution, 0),
+					timePastExecution: Math.max(timePastExecution, 0),
+				};
 				return acc;
 			}, {} as CountdownTimers);
 			setCountdownTimers(newCountdownTimers);
-		}, 1000);
-
-		return () => clearInterval(timer);
-	});
+		},
+		1000,
+		[rowsData]
+	);
 
 	return (
 		<>
 			<DesktopOnlyView>
 				<StyledTable
 					data={rowsData}
+					columnsDeps={[isCancelling, isExecuting]}
 					highlightRowsOnHover
 					showPagination
 					noResultsMessage={
@@ -145,9 +169,7 @@ const OpenOrdersTable: React.FC = () => {
 					columns={[
 						{
 							Header: (
-								<StyledTableHeader>
-									{t('futures.market.user.open-orders.table.market-type')}
-								</StyledTableHeader>
+								<TableHeader>{t('futures.market.user.open-orders.table.market-type')}</TableHeader>
 							),
 							accessor: 'market',
 							Cell: (cellProps: CellProps<any>) => {
@@ -172,11 +194,7 @@ const OpenOrdersTable: React.FC = () => {
 							width: 60,
 						},
 						{
-							Header: (
-								<StyledTableHeader>
-									{t('futures.market.user.open-orders.table.side')}
-								</StyledTableHeader>
-							),
+							Header: <TableHeader>{t('futures.market.user.open-orders.table.side')}</TableHeader>,
 							accessor: 'side',
 							Cell: (cellProps: CellProps<any>) => {
 								return (
@@ -189,11 +207,7 @@ const OpenOrdersTable: React.FC = () => {
 							width: 40,
 						},
 						{
-							Header: (
-								<StyledTableHeader>
-									{t('futures.market.user.open-orders.table.size')}
-								</StyledTableHeader>
-							),
+							Header: <TableHeader>{t('futures.market.user.open-orders.table.size')}</TableHeader>,
 							accessor: 'size',
 							Cell: (cellProps: CellProps<any>) => {
 								return (
@@ -207,39 +221,53 @@ const OpenOrdersTable: React.FC = () => {
 						},
 						{
 							Header: (
-								<StyledTableHeader>
-									{t('futures.market.user.open-orders.table.commit-deposit')}
-								</StyledTableHeader>
+								<TableHeader>{t('futures.market.user.open-orders.table.status')}</TableHeader>
 							),
-							accessor: 'marginDelta',
+							accessor: 'status',
 							Cell: (cellProps: CellProps<any>) => {
-								const { totalDeposit } = cellProps.row.original;
-								return <div>{formatDollars(totalDeposit?.gt(0) ? totalDeposit : '0')}</div>;
+								return (
+									<div>
+										{cellProps.row.original.show &&
+											(cellProps.row.original.isStale ? (
+												<div>{t('futures.market.user.open-orders.status.expired')}</div>
+											) : cellProps.row.original.isFailed ? (
+												<div>{t('futures.market.user.open-orders.status.failed')}</div>
+											) : (
+												<div>{t('futures.market.user.open-orders.status.pending')}</div>
+											))}
+									</div>
+								);
 							},
 							sortable: true,
 							width: 50,
 						},
 						{
 							Header: (
-								<StyledTableHeader>
-									{t('futures.market.user.open-orders.table.status')}
-								</StyledTableHeader>
+								<TableHeader>{t('futures.market.user.open-orders.table.actions')}</TableHeader>
 							),
 							accessor: 'actions',
 							Cell: (cellProps: CellProps<any>) => {
 								return (
-									<div style={{ display: 'flex', alignItems: 'center' }}>
+									<div>
 										{cellProps.row.original.show &&
-											(cellProps.row.original.isStale ? (
-												<div>{t('futures.market.user.open-orders.status.expired')}</div>
+											cellProps.row.original.isStale &&
+											(isCancelling ? (
+												<ButtonLoader />
 											) : (
-												<div>{t('futures.market.user.open-orders.status.pending')}</div>
+												<CancelButton onClick={cellProps.row.original.onCancel}>
+													{t('futures.market.user.open-orders.actions.cancel')}
+												</CancelButton>
 											))}
-										{cellProps.row.original.show && cellProps.row.original.isStale && (
-											<CancelButton onClick={cellProps.row.original.onCancel}>
-												{t('futures.market.user.open-orders.actions.cancel')}
-											</CancelButton>
-										)}
+										{cellProps.row.original.show &&
+											!cellProps.row.original.isStale &&
+											cellProps.row.original.isFailed &&
+											(isExecuting ? (
+												<ButtonLoader />
+											) : (
+												<EditButton onClick={cellProps.row.original.onExecute}>
+													{t('futures.market.user.open-orders.actions.execute')}
+												</EditButton>
+											))}
 									</div>
 								);
 							},
@@ -267,9 +295,7 @@ const OpenOrdersTable: React.FC = () => {
 					columns={[
 						{
 							Header: (
-								<StyledTableHeader>
-									{t('futures.market.user.open-orders.table.side-type')}
-								</StyledTableHeader>
+								<TableHeader>{t('futures.market.user.open-orders.table.side-type')}</TableHeader>
 							),
 							accessor: 'side/type',
 							Cell: (cellProps: CellProps<any>) => (
@@ -283,11 +309,7 @@ const OpenOrdersTable: React.FC = () => {
 							width: 100,
 						},
 						{
-							Header: (
-								<StyledTableHeader>
-									{t('futures.market.user.open-orders.table.size')}
-								</StyledTableHeader>
-							),
+							Header: <TableHeader>{t('futures.market.user.open-orders.table.size')}</TableHeader>,
 							accessor: 'size',
 							Cell: (cellProps: CellProps<any>) => {
 								return (
@@ -300,11 +322,13 @@ const OpenOrdersTable: React.FC = () => {
 					]}
 				/>
 
-				<OrderDrawer
-					open={!!selectedOrder}
-					order={selectedOrder}
-					closeDrawer={() => setSelectedOrder(undefined)}
-				/>
+				{selectedOrder && (
+					<OrderDrawer
+						open={!!selectedOrder}
+						order={selectedOrder}
+						closeDrawer={() => setSelectedOrder(undefined)}
+					/>
+				)}
 			</MobileOrTabletView>
 		</>
 	);
@@ -312,11 +336,6 @@ const OpenOrdersTable: React.FC = () => {
 
 const StyledTable = styled(Table)`
 	margin-bottom: 20px;
-`;
-
-const StyledTableHeader = styled.div`
-	font-family: ${(props) => props.theme.fonts.regular};
-	text-transform: capitalize;
 `;
 
 const StyledCurrencyIcon = styled(Currency.Icon)`
@@ -366,14 +385,17 @@ const EditButton = styled.button`
 	font-size: 12px;
 	padding-left: 12px;
 	padding-right: 12px;
+
+	&:hover {
+		background: ${(props) => props.theme.colors.selectedTheme.gray};
+		color: ${(props) => props.theme.colors.selectedTheme.white};
+	}
 `;
 
 const CancelButton = styled(EditButton)`
 	opacity: ${(props) => (props.disabled ? 0.4 : 1)};
-	margin-left: 8px;
 	border: 1px solid ${(props) => props.theme.colors.selectedTheme.red};
 	color: ${(props) => props.theme.colors.selectedTheme.red};
-	margin-right: 8px;
 
 	&:hover {
 		background: ${(props) => props.theme.colors.selectedTheme.red};

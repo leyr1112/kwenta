@@ -2,22 +2,16 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
-import Table, { TableNoResults } from 'components/Table';
+import Table, { TableHeader, TableNoResults } from 'components/Table';
 import useGetFuturesMarginTransfers from 'queries/futures/useGetFuturesMarginTransfers';
-import { selectMarketAsset } from 'state/futures/selectors';
-import { useAppSelector } from 'state/hooks';
+import { SectionHeader, SectionTitle } from 'sections/futures/mobile';
 import { timePresentation } from 'utils/formatters/date';
 
-import { SectionHeader, SectionTitle } from '../common';
-
 const TransfersTab: React.FC = () => {
-	const marketAsset = useAppSelector(selectMarketAsset);
-
-	const marginTransfersQuery = useGetFuturesMarginTransfers(marketAsset);
-	const marginTransfers = React.useMemo(
-		() => (marginTransfersQuery.isSuccess ? marginTransfersQuery?.data ?? [] : []),
-		[marginTransfersQuery.isSuccess, marginTransfersQuery.data]
-	);
+	const marginTransfersQuery = useGetFuturesMarginTransfers();
+	const marginTransfers = React.useMemo(() => marginTransfersQuery?.data ?? [], [
+		marginTransfersQuery.data,
+	]);
 
 	const { isLoading, isFetched: isLoaded } = marginTransfersQuery;
 
@@ -34,21 +28,13 @@ const TransfersTab: React.FC = () => {
 				highlightRowsOnHover
 				columns={[
 					{
-						Header: (
-							<StyledTableHeader>
-								{t('futures.market.user.transfers.table.action')}
-							</StyledTableHeader>
-						),
+						Header: <TableHeader>{t('futures.market.user.transfers.table.action')}</TableHeader>,
 						accessor: 'action',
 						Cell: (cellProps: any) => <StyledActionCell>{cellProps.value}</StyledActionCell>,
 						width: 50,
 					},
 					{
-						Header: (
-							<StyledTableHeader>
-								{t('futures.market.user.transfers.table.amount')}
-							</StyledTableHeader>
-						),
+						Header: <TableHeader>{t('futures.market.user.transfers.table.amount')}</TableHeader>,
 						accessor: 'amount',
 						sortType: 'basic',
 						Cell: (cellProps: any) => (
@@ -60,9 +46,7 @@ const TransfersTab: React.FC = () => {
 						width: 50,
 					},
 					{
-						Header: (
-							<StyledTableHeader>{t('futures.market.user.transfers.table.date')}</StyledTableHeader>
-						),
+						Header: <TableHeader>{t('futures.market.user.transfers.table.date')}</TableHeader>,
 						accessor: 'timestamp',
 						Cell: (cellProps: any) => (
 							<DefaultCell>{timePresentation(cellProps.value, t)}</DefaultCell>
@@ -106,11 +90,6 @@ const StyledAmountCell = styled(DefaultCell)<{ isPositive: boolean }>`
 		props.isPositive
 			? props.theme.colors.selectedTheme.green
 			: props.theme.colors.selectedTheme.red};
-`;
-
-const StyledTableHeader = styled.div`
-	font-family: ${(props) => props.theme.fonts.regular};
-	text-transform: capitalize;
 `;
 
 export default TransfersTab;

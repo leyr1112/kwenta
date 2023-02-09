@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
-import StyledTooltip from 'components/Tooltip/StyledTooltip';
+import Tooltip from 'components/Tooltip/Tooltip';
 import { selectMarketAsset, selectMarketInfo } from 'state/futures/selectors';
 import { useAppSelector } from 'state/hooks';
 import { CapitalizedText, NumericValue } from 'styles/common';
@@ -30,15 +30,15 @@ const SkewInfo: React.FC = () => {
 	const data = useMemo(() => {
 		return marketInfo?.openInterest
 			? {
-					short: marketInfo?.openInterest?.shortPct,
-					long: marketInfo?.openInterest?.longPct,
-					shortValue: marketInfo?.openInterest?.shortUSD,
-					longValue: marketInfo?.openInterest?.longUSD,
-					shortText: formatCurrency(marketAsset, marketInfo?.openInterest?.shortUSD, {
+					short: marketInfo?.openInterest.shortPct,
+					long: marketInfo?.openInterest.longPct,
+					shortValue: marketInfo?.openInterest.shortUSD,
+					longValue: marketInfo?.openInterest.longUSD,
+					shortText: formatCurrency(marketAsset, marketInfo?.openInterest.shortUSD, {
 						sign: '$',
 						minDecimals: 0,
 					}),
-					longText: formatCurrency(marketAsset, marketInfo?.openInterest?.longUSD, {
+					longText: formatCurrency(marketAsset, marketInfo?.openInterest.longUSD, {
 						sign: '$',
 						minDecimals: 0,
 					}),
@@ -50,10 +50,10 @@ const SkewInfo: React.FC = () => {
 		<SkewContainer>
 			<SkewHeader>
 				<SkewTooltip
-					isNumber={true}
+					isNumber
 					preset="bottom-right"
 					width={'310px'}
-					height={'auto'}
+					height="auto"
 					content={data.shortText ?? 0}
 				>
 					<WithCursor cursor="help">
@@ -71,10 +71,10 @@ const SkewInfo: React.FC = () => {
 					</WithCursor>
 				</SkewTooltip>
 				<SkewTooltip
-					isNumber={true}
+					isNumber
 					preset="bottom-rigth"
-					width={'310px'}
-					height={'auto'}
+					width="310px"
+					height="auto"
 					content={data.longText ?? 0}
 				>
 					<WithCursor cursor="help">
@@ -93,7 +93,7 @@ const WithCursor = styled.div<{ cursor: 'help' }>`
 	cursor: ${(props) => props.cursor};
 `;
 
-const SkewTooltip = styled(StyledTooltip)<{ isNumber?: boolean }>`
+const SkewTooltip = styled(Tooltip)<{ isNumber?: boolean }>`
 	left: -30px;
 	z-index: 2;
 	padding: 10px;

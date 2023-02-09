@@ -1,11 +1,9 @@
 import { CurrencyKey } from '@synthetixio/contracts-interface';
 import { SynthBalance } from '@synthetixio/queries';
 import Wei, { wei } from '@synthetixio/wei';
-import * as _ from 'lodash/fp';
 import { FC, ReactElement, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CellProps, Row } from 'react-table';
-import { useRecoilValue } from 'recoil';
 import styled from 'styled-components';
 
 import ChangePercent from 'components/ChangePercent';
@@ -14,11 +12,10 @@ import { MobileHiddenView, MobileOnlyView } from 'components/Media';
 import Table, { TableNoResults } from 'components/Table';
 import { NO_VALUE } from 'constants/placeholder';
 import Connector from 'containers/Connector';
-import { Price } from 'queries/rates/types';
+import { getDisplayAsset } from 'sdk/utils/futures';
 import { selectBalances } from 'state/balances/selectors';
 import { useAppSelector } from 'state/hooks';
-import { selectPrices } from 'state/prices/selectors';
-import { pastRatesState } from 'store/futures';
+import { selectPreviousDayPrices, selectPrices } from 'state/prices/selectors';
 import { sortWei } from 'utils/balances';
 import { formatNumber, zeroBN } from 'utils/formatters/number';
 import { isDecimalFour } from 'utils/futures';
@@ -32,18 +29,8 @@ type Cell = {
 	priceChange: Wei | undefined;
 };
 
-const calculatePriceChange = (current: Wei | null | undefined, past: Price | undefined) => {
-	if (_.isNil(current) || _.isNil(past)) {
-		return undefined;
-	}
-
-	const priceChange = current.sub(past.price).div(current);
-
-	return priceChange;
-};
-
-const conditionalRender = <T,>(prop: T, children: ReactElement): ReactElement =>
-	_.isNil(prop) ? <DefaultCell>{NO_VALUE}</DefaultCell> : children;
+const conditionalRender = <T,>(prop: T, children: ReactElement) =>
+	!prop ? <DefaultCell>{NO_VALUE}</DefaultCell> : children;
 
 type SynthBalancesTableProps = {
 	exchangeTokens: {
@@ -59,25 +46,25 @@ type SynthBalancesTableProps = {
 const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => {
 	const { t } = useTranslation();
 	const { synthsMap } = Connector.useContainer();
-	const pastRates = useRecoilValue(pastRatesState);
 	const prices = useAppSelector(selectPrices);
+	const pastRates = useAppSelector(selectPreviousDayPrices);
 	const { synthBalances } = useAppSelector(selectBalances);
 
 	const synthTokens = useMemo(() => {
 		return synthBalances.map((synthBalance: SynthBalance) => {
 			const { currencyKey, balance, usdBalance } = synthBalance;
-
 			const price = prices[currencyKey].onChain;
-			const pastPrice = pastRates.find((price: Price) => price.synth === currencyKey);
+			const pastPrice = pastRates.find((price) => price.synth === getDisplayAsset(currencyKey));
+			const description = synthsMap?.[currencyKey]?.description ?? '';
 
-			const description = synthsMap != null ? synthsMap[currencyKey]?.description : '';
 			return {
 				synth: currencyKey,
 				description,
 				balance,
 				usdBalance,
 				price,
-				priceChange: calculatePriceChange(price, pastPrice),
+				priceChange:
+					currencyKey === 'sUSD' ? zeroBN : price?.sub(pastPrice?.rate ?? zeroBN).div(price),
 			};
 		});
 	}, [pastRates, prices, synthBalances, synthsMap]);
@@ -89,7 +76,7 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 	return (
 		<>
 			<MobileHiddenView>
-				<TableContainer>
+				<div>
 					<Table
 						data={data}
 						showPagination
@@ -101,9 +88,7 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 						}
 						columns={[
 							{
-								Header: (
-									<TableHeader>{t('dashboard.overview.synth-balances-table.market')}</TableHeader>
-								),
+								Header: <div>{t('dashboard.overview.synth-balances-table.market')}</div>,
 								accessor: 'market',
 								Cell: (cellProps: CellProps<Cell>) => {
 									return conditionalRender<Cell['synth']>(
@@ -126,9 +111,7 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 								width: 198,
 							},
 							{
-								Header: (
-									<TableHeader>{t('dashboard.overview.synth-balances-table.amount')}</TableHeader>
-								),
+								Header: <div>{t('dashboard.overview.synth-balances-table.amount')}</div>,
 								accessor: 'amount',
 								Cell: (cellProps: CellProps<Cell>) => {
 									return conditionalRender<Cell['balance']>(
@@ -150,19 +133,15 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 								),
 							},
 							{
-								Header: (
-									<TableHeader>
-										{t('dashboard.overview.synth-balances-table.value-in-usd')}
-									</TableHeader>
-								),
+								Header: <div>{t('dashboard.overview.synth-balances-table.value-in-usd')}</div>,
 								accessor: 'valueInUSD',
 								Cell: (cellProps: CellProps<Cell>) => {
 									return conditionalRender<Cell['usdBalance']>(
 										cellProps.row.original.usdBalance,
 										<Currency.Price
-											currencyKey={'sUSD'}
+											currencyKey="sUSD"
 											price={cellProps.row.original.usdBalance}
-											sign={'$'}
+											sign="$"
 											conversionRate={1}
 										/>
 									);
@@ -179,19 +158,15 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 								),
 							},
 							{
-								Header: (
-									<TableHeader>
-										{t('dashboard.overview.synth-balances-table.oracle-price')}
-									</TableHeader>
-								),
+								Header: <div>{t('dashboard.overview.synth-balances-table.oracle-price')}</div>,
 								accessor: 'price',
 								Cell: (cellProps: CellProps<Cell>) => {
 									return conditionalRender<Cell['price']>(
 										cellProps.row.original.price,
 										<Currency.Price
-											currencyKey={'sUSD'}
+											currencyKey="sUSD"
 											price={cellProps.row.original.price!}
-											sign={'$'}
+											sign="$"
 											conversionRate={1}
 											formatOptions={{
 												minDecimals: isDecimalFour(cellProps.row.original.synth) ? 4 : 2,
@@ -211,11 +186,7 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 								),
 							},
 							{
-								Header: (
-									<TableHeader>
-										{t('dashboard.overview.synth-balances-table.daily-change')}
-									</TableHeader>
-								),
+								Header: <div>{t('dashboard.overview.synth-balances-table.daily-change')}</div>,
 								accessor: 'priceChange',
 								Cell: (cellProps: CellProps<Cell>) => {
 									return conditionalRender<Cell['priceChange']>(
@@ -241,7 +212,7 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 							},
 						]}
 					/>
-				</TableContainer>
+				</div>
 			</MobileHiddenView>
 			<MobileOnlyView>
 				<StyledMobileTable
@@ -255,8 +226,8 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 						{
 							Header: () => (
 								<div>
-									<TableHeader>Market</TableHeader>
-									<TableHeader>Oracle</TableHeader>
+									<div>Market</div>
+									<div>Oracle</div>
 								</div>
 							),
 							accessor: 'market',
@@ -269,7 +240,7 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 											</IconContainer>
 											<StyledText>{cellProps.row.original.synth}</StyledText>
 											<Currency.Price
-												currencyKey={'sUSD'}
+												currencyKey="sUSD"
 												price={cellProps.row.original.price ?? 0}
 												sign="$"
 												formatOptions={{
@@ -285,8 +256,8 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 						{
 							Header: () => (
 								<div>
-									<TableHeader>Amount</TableHeader>
-									<TableHeader>USD Value</TableHeader>
+									<div>Amount</div>
+									<div>USD Value</div>
 								</div>
 							),
 							accessor: 'amount',
@@ -295,7 +266,7 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 									<div>
 										<div>{formatNumber(cellProps.row.original.balance ?? 0)}</div>
 										<Currency.Price
-											currencyKey={'sUSD'}
+											currencyKey="sUSD"
 											price={cellProps.row.original.usdBalance ?? 0}
 											sign="$"
 										/>
@@ -307,7 +278,7 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 						{
 							Header: () => (
 								<div>
-									<TableHeader>24H Change</TableHeader>
+									<div>24H Change</div>
 								</div>
 							),
 							accessor: 'priceChange',
@@ -315,7 +286,7 @@ const SynthBalancesTable: FC<SynthBalancesTableProps> = ({ exchangeTokens }) => 
 								return conditionalRender<Cell['priceChange']>(
 									cellProps.row.original.priceChange,
 									<ChangePercent
-										value={cellProps.row.original.priceChange ?? 0}
+										value={cellProps.row.original.priceChange ?? zeroBN}
 										decimals={2}
 										className="change-pct"
 									/>
@@ -359,10 +330,6 @@ const StyledValue = styled.div`
 const DefaultCell = styled.p`
 	color: ${(props) => props.theme.colors.selectedTheme.button.text.primary};
 `;
-
-const TableContainer = styled.div``;
-
-const TableHeader = styled.div``;
 
 const StyledText = styled.div`
 	display: flex;

@@ -1,18 +1,21 @@
-import { FC, useCallback, useEffect, useMemo } from 'react';
+import { FC, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
+import HelpIcon from 'assets/svg/app/question-mark.svg';
 import BaseModal from 'components/BaseModal';
 import Button from 'components/Button';
-import Error from 'components/Error';
+import Error from 'components/ErrorView';
+import { FlexDivCentered } from 'components/layout/flex';
 import { ButtonLoader } from 'components/Loader/Loader';
 import { DesktopOnlyView, MobileOrTabletView } from 'components/Media';
+import Tooltip from 'components/Tooltip/Tooltip';
 import useSelectedPriceCurrency from 'hooks/useSelectedPriceCurrency';
-import { getDisplayAsset } from 'sdk/utils/futures';
+import { PositionSide } from 'sdk/types/futures';
+import { getDisplayAsset, OrderNameByType } from 'sdk/utils/futures';
 import { setOpenModal } from 'state/app/reducer';
-import { modifyIsolatedPosition, modifyIsolatedPositionEstimateGas } from 'state/futures/actions';
+import { modifyIsolatedPosition } from 'state/futures/actions';
 import {
-	selectDelayedOrderFee,
 	selectIsModifyingIsolatedPosition,
 	selectLeverageSide,
 	selectMarketAsset,
@@ -27,7 +30,6 @@ import {
 } from 'state/futures/selectors';
 import { useAppDispatch, useAppSelector } from 'state/hooks';
 import { FetchStatus } from 'state/types';
-import { FlexDivCentered } from 'styles/common';
 import { getKnownError } from 'utils/formatters/error';
 import {
 	zeroBN,
@@ -38,7 +40,6 @@ import {
 } from 'utils/formatters/number';
 
 import BaseDrawer from '../MobileTrade/drawers/BaseDrawer';
-import { PositionSide } from '../types';
 import { MobileConfirmTradeButton } from './TradeConfirmationModal';
 
 const DelayedOrderConfirmationModal: FC = () => {
@@ -57,34 +58,31 @@ const DelayedOrderConfirmationModal: FC = () => {
 	const potentialTradeDetails = useAppSelector(selectTradePreview);
 	const previewStatus = useAppSelector(selectTradePreviewStatus);
 	const orderType = useAppSelector(selectOrderType);
-	const { commitDeposit } = useAppSelector(selectDelayedOrderFee);
 
-	useEffect(() => {
-		dispatch(
-			modifyIsolatedPositionEstimateGas({
-				sizeDelta: nativeSizeDelta,
-				delayed: true,
-				offchain: orderType === 'delayed offchain',
-			})
-		);
-	}, [nativeSizeDelta, orderType, dispatch]);
-
-	const positionSize = position?.position?.size ?? zeroBN;
+	const positionSize = useMemo(() => {
+		const positionDetails = position?.position;
+		return positionDetails
+			? positionDetails.size.mul(positionDetails.side === PositionSide.LONG ? 1 : -1)
+			: zeroBN;
+	}, [position]);
 
 	const orderDetails = useMemo(() => {
 		return { nativeSizeDelta, size: (positionSize ?? zeroBN).add(nativeSizeDelta).abs() };
 	}, [nativeSizeDelta, positionSize]);
 
-	// TODO: check this deposit
+	const isClosing = useMemo(() => {
+		return orderDetails.size.eq(zeroBN);
+	}, [orderDetails]);
+
 	const totalDeposit = useMemo(() => {
-		return (commitDeposit ?? zeroBN).add(marketInfo?.keeperDeposit ?? zeroBN);
-	}, [commitDeposit, marketInfo?.keeperDeposit]);
+		return (potentialTradeDetails?.fee ?? zeroBN).add(marketInfo?.keeperDeposit ?? zeroBN);
+	}, [potentialTradeDetails?.fee, marketInfo?.keeperDeposit]);
 
 	const dataRows = useMemo(
 		() => [
 			{
 				label: t('futures.market.user.position.modal.order-type'),
-				value: orderType,
+				value: OrderNameByType[orderType],
 			},
 			{
 				label: t('futures.market.user.position.modal.side'),
@@ -102,7 +100,12 @@ const DelayedOrderConfirmationModal: FC = () => {
 			},
 			{
 				label: t('futures.market.user.position.modal.estimated-fill'),
+				tooltipContent: t('futures.market.trade.delayed-order.description'),
 				value: formatDollars(potentialTradeDetails?.price ?? zeroBN, { isAssetPrice: true }),
+			},
+			{
+				label: t('futures.market.user.position.modal.liquidation-price'),
+				value: formatDollars(potentialTradeDetails?.liqPrice ?? zeroBN, { isAssetPrice: true }),
 			},
 			{
 				label: t('futures.market.user.position.modal.time-delay'),
@@ -119,7 +122,7 @@ const DelayedOrderConfirmationModal: FC = () => {
 			},
 			{
 				label: t('futures.market.user.position.modal.fee-estimated'),
-				value: formatCurrency(selectedPriceCurrency.name, commitDeposit ?? zeroBN, {
+				value: formatCurrency(selectedPriceCurrency.name, potentialTradeDetails?.fee ?? zeroBN, {
 					minDecimals: 2,
 					sign: selectedPriceCurrency.sign,
 				}),
@@ -133,6 +136,7 @@ const DelayedOrderConfirmationModal: FC = () => {
 			},
 			{
 				label: t('futures.market.user.position.modal.deposit'),
+				tooltipContent: t('futures.market.trade.confirmation.modal.delayed-disclaimer'),
 				value: formatDollars(totalDeposit),
 			},
 		],
@@ -140,7 +144,6 @@ const DelayedOrderConfirmationModal: FC = () => {
 			t,
 			orderDetails,
 			orderType,
-			commitDeposit,
 			potentialTradeDetails,
 			marketAsset,
 			leverageSide,
@@ -156,12 +159,12 @@ const DelayedOrderConfirmationModal: FC = () => {
 		dispatch(setOpenModal(null));
 	}, [dispatch]);
 
-	const handleConfirmOrder = async () => {
+	const handleConfirmOrder = () => {
 		dispatch(
 			modifyIsolatedPosition({
 				sizeDelta: nativeSizeDelta,
 				delayed: true,
-				offchain: orderType === 'delayed offchain',
+				offchain: orderType === 'delayed_offchain',
 			})
 		);
 	};
@@ -172,13 +175,31 @@ const DelayedOrderConfirmationModal: FC = () => {
 				<StyledBaseModal
 					onDismiss={onDismiss}
 					isOpen
-					title={t('futures.market.trade.confirmation.modal.confirm-order')}
+					title={
+						isClosing
+							? t('futures.market.trade.confirmation.modal.close-order')
+							: t('futures.market.trade.confirmation.modal.confirm-order')
+					}
 				>
 					{dataRows.map((row, i) => (
 						<Row key={`datarow-${i}`}>
-							<Label>{row.label}</Label>
+							{row.tooltipContent ? (
+								<Tooltip
+									height="auto"
+									width="250px"
+									content={row.tooltipContent}
+									style={{ textTransform: 'none' }}
+								>
+									<Label>
+										{row.label}
+										<StyledHelpIcon />
+									</Label>
+								</Tooltip>
+							) : (
+								<Label>{row.label}</Label>
+							)}
 							<Value>
-								<span className={row.color ? `value ${row.color}` : ''}>{row.value}</span>
+								<span className={`value ${row.color ?? ''}`}>{row.value}</span>
 							</Value>
 						</Row>
 					))}
@@ -190,11 +211,12 @@ const DelayedOrderConfirmationModal: FC = () => {
 					<ConfirmTradeButton disabled={submitting} variant="flat" onClick={handleConfirmOrder}>
 						{submitting ? (
 							<ButtonLoader />
+						) : isClosing ? (
+							t('futures.market.trade.confirmation.modal.close-order')
 						) : (
 							t('futures.market.trade.confirmation.modal.confirm-order')
 						)}
 					</ConfirmTradeButton>
-					<Disclaimer>{t('futures.market.trade.confirmation.modal.delayed-disclaimer')}</Disclaimer>
 					{txError && <Error message={getKnownError(txError)} formatter="revert" />}
 				</StyledBaseModal>
 			</DesktopOnlyView>
@@ -211,6 +233,8 @@ const DelayedOrderConfirmationModal: FC = () => {
 						>
 							{submitting ? (
 								<ButtonLoader />
+							) : isClosing ? (
+								t('futures.market.trade.confirmation.modal.close-order')
 							) : (
 								t('futures.market.trade.confirmation.modal.confirm-order')
 							)}
@@ -225,9 +249,6 @@ const DelayedOrderConfirmationModal: FC = () => {
 const StyledBaseModal = styled(BaseModal)`
 	[data-reach-dialog-content] {
 		width: 400px;
-	}
-	.card-body {
-		padding: 28px;
 	}
 `;
 
@@ -266,7 +287,6 @@ const Value = styled.div`
 
 const ConfirmTradeButton = styled(Button)`
 	margin-top: 24px;
-	margin-bottom: 12px;
 	text-overflow: ellipsis;
 	overflow: hidden;
 	white-space: nowrap;
@@ -278,6 +298,11 @@ const Disclaimer = styled.div`
 	color: ${(props) => props.theme.colors.selectedTheme.gray};
 	margin-top: 12px;
 	margin-bottom: 12px;
+`;
+
+const StyledHelpIcon = styled(HelpIcon)`
+	margin-bottom: -1px;
+	margin-left: 8px;
 `;
 
 export default DelayedOrderConfirmationModal;

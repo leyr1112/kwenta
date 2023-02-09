@@ -4,12 +4,12 @@ import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
 import BaseModal from 'components/BaseModal';
+import { FuturesMarketAsset, PositionSide } from 'sdk/types/futures';
 import PositionButtons from 'sections/futures/PositionButtons';
 import { selectMarketPrice } from 'state/futures/selectors';
 import { useAppSelector } from 'state/hooks';
-import { FuturesMarketAsset, getMarketName } from 'utils/futures';
+import { getMarketName } from 'utils/futures';
 
-import { PositionSide } from '../types';
 import LabelWithInput from './LabelWithInput';
 import PnLs from './PnLs';
 import ProfitDetails from './ProfitDetails';
@@ -143,7 +143,7 @@ const ProfitCalculator: FC<ProfitCalculatorProps> = ({ marketAsset, setOpenProfi
 					minWidth: 500,
 				}}
 			>
-				<ModalWindow>
+				<div>
 					<LabelWithInput
 						labelText={'Entry Price: '}
 						value={entryPrice}
@@ -222,13 +222,13 @@ const ProfitCalculator: FC<ProfitCalculatorProps> = ({ marketAsset, setOpenProfi
 						leverageSide={leverageSide}
 						marketAssetPositionSize={marketAssetPositionSize}
 					/>
-				</ModalWindow>
+				</div>
 			</StyledBaseModal>
 		</>
 	);
 };
 
-export const StyledBaseModal = styled(BaseModal)`
+const StyledBaseModal = styled(BaseModal)`
 	[data-reach-dialog-content] {
 		width: 500px;
 		.react-draggable {
@@ -267,7 +267,5 @@ const ProfitCalcGrid = styled.div`
 	grid-gap: 1.1rem;
 	grid-template-columns: repeat(2, 1fr);
 `;
-
-const ModalWindow = styled.div``;
 
 export default ProfitCalculator;

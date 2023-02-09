@@ -1,5 +1,5 @@
 import { wei, WeiSource } from '@synthetixio/wei';
-import { FC } from 'react';
+import { FC, memo } from 'react';
 import styled from 'styled-components';
 
 import ChangeNegativeIcon from 'assets/svg/app/change-negative.svg';
@@ -14,37 +14,33 @@ type ChangePercentProps = {
 	showArrow?: boolean;
 };
 
-export const ChangePercent: FC<ChangePercentProps> = ({
-	value,
-	decimals = 2,
-	showArrow = true,
-	...rest
-}) => {
-	const isValid = !!value;
-	const isZero = value && wei(value).eq(0);
-	const isPositive = value && wei(value).gt(0);
+export const ChangePercent: FC<ChangePercentProps> = memo(
+	({ value, decimals = 2, showArrow = true, ...rest }) => {
+		const isValid = !!value;
+		const isZero = value && wei(value).eq(0);
+		const isPositive = value && wei(value).gt(0);
+		return (
+			<CurrencyChange isValid={isValid} isPositive={isPositive} isZero={isZero} {...rest}>
+				{!isValid || isZero ? (
+					<>{NO_VALUE}</>
+				) : !showArrow ? (
+					<></>
+				) : !isZero && isPositive ? (
+					<ChangePositiveIcon />
+				) : (
+					<ChangeNegativeIcon />
+				)}
+				{!isZero && value && formatPercent(wei(value).abs(), { minDecimals: decimals })}
+			</CurrencyChange>
+		);
+	}
+);
 
-	return (
-		<CurrencyChange isValid={isValid} isPositive={isPositive} {...rest}>
-			{!isValid ? (
-				<>{NO_VALUE}</>
-			) : !showArrow ? (
-				<></>
-			) : !isZero && isPositive ? (
-				<ChangePositiveIcon />
-			) : (
-				<ChangeNegativeIcon />
-			)}
-			{value && formatPercent(wei(value).abs(), { minDecimals: decimals })}
-		</CurrencyChange>
-	);
-};
-
-const CurrencyChange = styled.span<{ isValid: boolean; isPositive: boolean }>`
+const CurrencyChange = styled.span<{ isValid: boolean; isPositive: boolean; isZero: boolean }>`
 	display: inline-flex;
 	align-items: center;
 	color: ${(props) =>
-		!props.isValid
+		!props.isValid || props.isZero
 			? props.theme.colors.selectedTheme.white
 			: props.isPositive
 			? props.theme.colors.selectedTheme.green

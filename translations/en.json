@@ -3,7 +3,7 @@
 		"en": "English"
 	},
 	"meta": {
-		"description": "Gain exposure to cryptocurrencies, forex, indices, and commodities on Ethereum with zero slippage",
+		"description": "Gain exposure to cryptocurrencies, forex and commodities on Ethereum with zero slippage",
 		"og": {
 			"title": "Kwenta",
 			"site-name": "Kwenta"
@@ -16,12 +16,14 @@
 			"markets": "futures",
 			"isolated-margin": "Isolated Margin",
 			"cross-margin": "Cross Margin",
+			"v2-alpha": "Try Futures V2 Alpha",
 			"leaderboard-alltime": "All Time",
 			"competition-round-1": "Round 1",
 			"competition-round-2": "Round 2",
 			"leaderboard": "leaderboard",
 			"earn": "earn",
-			"beta-badge": "Beta"
+			"beta-badge": "Beta",
+			"reward-badge": "Rewards"
 		},
 		"networks-switcher": {
 			"chains": "Switch Networks",
@@ -51,7 +53,7 @@
 			"governance": {
 				"title": "Governance",
 				"overview": "Overview",
-				"kips": "KIPs"
+				"kips": "Kwenta State Log"
 			},
 			"socials": {
 				"title": "Socials",
@@ -69,9 +71,7 @@
 		"assets": {
 			"title": "UNIQUE MARKETS",
 			"description": "Backed by Chainlink Oracles",
-			"index": "Unique Indices",
 			"forex": "Forex",
-			"equities": "Traditional Equities",
 			"crypto": "Cryptocurrencies",
 			"commodity": "Commodities",
 			"short": "Short positions"
@@ -283,7 +283,7 @@
 				"governance": "Governance",
 				"dev-dao": "Dev DAO",
 				"marketing-dao": "Marketing DAO",
-				"kips": "KIPs"
+				"kips": "Kwenta State Log"
 			}
 		}
 	},
@@ -318,7 +318,7 @@
 				"select-token": "select token"
 			},
 			"max-button": "max",
-			"slippage": " slippage"
+			"price-impact": " price impact"
 		},
 		"market-details-card": {
 			"title": "Market Details",
@@ -342,8 +342,9 @@
 				"24h-change": "Total change in asset value within the past 24 hours",
 				"24h-vol": "Total trade volume within the past 24 hours",
 				"24h-trades": "Total amount of trades on selected pair within the past 24h",
-				"open-interest": "Total notional value on all outstanding positions of the selected market",
-				"1h-funding-rate": "Funding applies to all open positions. A positive rate means longs pay shorts, a negative rate means shorts pay longs. The rate is calculated as the average funding paid by open positions for the last hour. Funding accrues on a position every time it is opened, modified, or closed. Funding accrues on open positions."
+				"open-interest-s": "Total notional value on all short positions / max open interest",
+				"open-interest-l": "Total notional value on all long positions / max open interest",
+				"1h-funding-rate": "Funding applies to all open positions. A positive rate means longs pay shorts, a negative rate means shorts pay longs. The rate increases when a market is skewed long, and decreases when it is skewed short. Funding accrues on a position every time it is opened, modified, or closed."
 			},
 			"deprecated-info": "DEBT-PERP is being deprecated soon. Please close your positions at your earliest convenience."
 		},
@@ -449,6 +450,7 @@
 				"notionalValue": "Size",
 				"liquidationPrice": "Liq. Price",
 				"no-result": "You have no other open positions",
+				"legacy-link": "Missing a position? Check the legacy app",
 				"mobile": {
 					"market": "Market/Side",
 					"price": "Oracle/Entry",
@@ -461,12 +463,12 @@
 				"value-in-usd": "Value in USD",
 				"oracle-price": "Price",
 				"daily-change": "24H Change",
-				"no-result": "You have no synths"
+				"no-result": "You have no tokens"
 			},
 			"futures-markets-table": {
 				"market": "Market",
 				"oracle": "Oracle",
-				"oracle-price": "Oracle Price",
+				"mark-price": "Mark Price",
 				"daily-change": "24H Change",
 				"funding-rate": "1H Funding Rate",
 				"open-interest": "Open Interest",
@@ -514,7 +516,7 @@
 					"claimable-rewards": "Claimable Rewards",
 					"escrowed-rewards": "Escrowed Rewards",
 					"liquid-rewards": "Liquid Rewards",
-					"annual-percentage-yield": "Annual Percentage Yield",
+					"annual-percentage-rate": "Annual Percentage Rate",
 					"claim": "Claim",
 					"current-trading-period": "Current Trading Period:"
 				},
@@ -524,17 +526,25 @@
 					"pending-for-rewards": "Pending...",
 					"trading-rewards-tooltip": "Only trades made using a Kwenta Cross Margin account are eligible for trading rewards.",
 					"spot-fee-paid": "Spot Fee Paid: Epoch {{EpochPeriod}}",
-					"future-fee-paid": "Futures Fees Paid: Ep. {{EpochPeriod}}",					
+					"future-fee-paid": "Futures Fees Paid: Ep. {{EpochPeriod}}",
+					"future-fee-paid-mobile": "Futures Fees Paid",
 					"fees-paid": "Total Fees in Pool: Ep. {{EpochPeriod}}",
+					"fees-paid-mobile": "Total Fees in Pool",
 					"estimated-rewards": "Estimated Reward*",
 					"estimated-reward-share": "Estimated Reward Share*",
+					"estimated-reward-share-mobile": "Est. Reward Share*",
 					"trading-activity-reset": "Time until next epoch",
 					"epoch": "Epoch {{EpochPeriod}}: {{EpochDate}}",
 					"claimable-rewards-epoch": "Claimable Rewards: Epoch {{EpochPeriod}}",
 					"claimable-rewards-all": "Claimable Trading Rewards",
 					"claim-epoch": "Claim: Epoch {{EpochPeriod}}",
 					"claim": "Claim",
-					"estimated-info": "* Estimated values do not reflect the final reward value and are subject to change as a result of Futures fees paid and staked amounts by other participants."
+					"estimated-info": "* Estimated values do not reflect the final reward value and are subject to change as a result of future fees paid and staked amounts by other participants.",
+					"trading-reward": "Trading Reward:",
+					"not-eligible": "Not Eligible",
+					"eligible": "Eligible",
+					"stake-to-earn": "Stake <0>$KWENTA</0> to earn more rewards",
+					"stake-to-start": "Stake <0>$KWENTA</0> to start earning rewards"
 				},
 				"escrow": {
 					"title": "Escrow",
@@ -567,7 +577,7 @@
 					"redeem": "Redeem",
 					"vekwenta-token": "veKwenta",
 					"vkwenta-token": "vKwenta",
-					"approve": "Approve",		
+					"approve": "Approve",
 					"balance": "Balance:"
 				}
 			}
@@ -653,7 +663,7 @@
 				"hourly-funding": "1H Funding Rate",
 				"instant-funding": "Inst. Funding Rate",
 				"fallback-funding": "Funding Rate"
- 			},
+			},
 			"position-card": {
 				"position-side": "Side",
 				"position-size": "Size",
@@ -675,6 +685,10 @@
 					"fees": "Net fees paid to open and/or modify the position",
 					"avg-entry-price": "The average price at which the position was opened"
 				}
+			},
+			"empty-position-card": {
+				"no-position": "No Open Position",
+				"explore-markets": "Explore available Markets"
 			},
 			"state": {
 				"opens-soon": "opens soon",
@@ -717,7 +731,7 @@
 			"trade": {
 				"market": "isolated market",
 				"title": "trade",
-				"perpsv2-disclaimer": "Synthetix Perps V2 markets are currently in closed alpha. Users assume all risks of interacting with these smart contracts.",
+				"perpsv2-disclaimer": "Synthetix Perps V2 markets are currently in alpha. Users assume all risks of interacting with these smart contracts.",
 				"input": {
 					"buy": "buy",
 					"sell": "sell",
@@ -766,7 +780,7 @@
 						"gas-fee": "Gas Fee",
 						"max": "Max",
 						"deposit": {
-							"title": "Transfer Margin",
+							"title": "Deposit",
 							"button": "Deposit Margin",
 							"approve-button": "Approve sUSD",
 							"disclaimer": "A $50 margin minimum is required to open a position.",
@@ -775,13 +789,18 @@
 							"exceeds-balance": "Amount exceeds balance"
 						},
 						"withdraw": {
-							"title": "Withdraw Margin",
+							"title": "Withdraw",
 							"button": "Withdraw Margin"
 						},
 						"title": "Edit margin",
 						"actions": {
 							"withdraw": "Withdraw",
 							"deposit": "Deposit"
+						},
+						"bridge": {
+							"title": "Bridge",
+							"low-balance": "Your sUSD balance is low. You can bridge more assets from another network below.",
+							"no-balance": "To get started, you need sUSD to trade on Kwenta. You can bridge assets from another network into sUSD below."
 						}
 					}
 				},
@@ -802,9 +821,10 @@
 				"confirmation": {
 					"modal": {
 						"confirm-order": "Confirm order",
+						"close-order": "Close position",
 						"max-leverage-disclaimer": "Note: A next price update could cause your order to exceed maximum leverage resulting in the order being dropped by the keeper.",
 						"disabled-min-margin": "Minimum market margin of $50 required",
-						"delayed-disclaimer": "* The deposit is applied to trading fees and keeper fees on order execution. If an order is either cancelled or not executed, the deposit will be forfeit to the Synthetix debt pool."
+						"delayed-disclaimer": "The fee amount will be deposited to cover trade and automated execution fees. If an order is cancelled or not executed, the deposit will be forfeited to the Synthetix debt pool."
 					}
 				},
 				"leverage": {
@@ -831,12 +851,17 @@
 					"insufficient-margin": "Insufficient free margin",
 					"error": "Error generating preview"
 				},
+				"fees": {
+					"tooltip": "Fees are displayed as maker / taker. Maker fees apply to orders that reduce the market skew. Taker fees apply to orders that increase the market skew.",
+					"keeper-tooltip": "Fixed fee to cover automated order execution"
+
+				},
 				"orders": {
 					"manage-keeper-deposit": {
 						"title": "Manage Account ETH Balance",
 						"withdraw": "Withdraw",
 						"deposit": "Deposit",
-						
+
 						"withdraw-warning": "Withdrawing ETH while you still have open orders pending risks leaving insufficient balance for orders to execute."
 					},
 					"fee-rejection-label": "Fee Rejection",
@@ -846,7 +871,6 @@
 					"failed": "Transaction failed",
 					"insufficient-margin": "Leverage cannot be increased, it exceeds the minimum margin requirement of $40",
 					"insufficient-free-margin": "Leverage cannot be modified, please deposit more margin or reduce open position sizes"
-
 				}
 			},
 			"history": {
@@ -886,15 +910,16 @@
 						"fee-total": "Total Fees",
 						"estimated-fill": "Estimated Fill Price",
 						"estimated-price-impact": "Estimated Price Impact",
-						"fee-estimated": "Estimated Fees",
+						"fee-estimated": "Estimated Trade Fee",
+						"liquidation-price": "Liquidation Price",
 						"time-delay": "Delay Until Executable",
-						"keeper-deposit": "Keeper Deposit",
+						"keeper-deposit": "Execution Fee",
 						"gas-fee": "Network Gas Fee",
 						"order-type": "Order Type",
 						"market-order": "Market",
 						"next-price-order": "Next Price",
 						"delayed-order": "Delayed",
-						"deposit": "Total Deposit*",
+						"deposit": "Total Fees",
 						"np-discount": "Next Price Discount"
 					}
 				},
@@ -913,6 +938,7 @@
 						"price": "Price",
 						"parameters": "Parameters",
 						"status": "Status",
+						"actions": "Actions",
 						"no-result": "You have no open orders",
 						"open-filter": "Only show open orders"
 					},
@@ -923,7 +949,8 @@
 					},
 					"status": {
 						"pending": "Pending",
-						"expired": "Expired"
+						"expired": "Expired",
+						"failed": "Failed to execute"
 					},
 					"badges": {
 						"expired": "Expired"
@@ -986,7 +1013,8 @@
 			"share": {
 				"title": "Share",
 				"buttons": {
-					"download": "Download"
+					"download": "Download",
+					"twitter": "Tweet it"
 				},
 				"position-metadata": {
 					"open-at": "opened on",
@@ -1057,17 +1085,16 @@
 	},
 	"modals": {
 		"select-currency": {
-			"title": "select synth",
+			"title": "select tokens",
 			"header": {
 				"search-results": "search results",
 				"category-synths": "{{category}} synths",
-				"all-synths": "synths",
-				"other-tokens": "tokens",
+				"tokens": "tokens",
 				"your-synths": "your synths",
 				"holdings": "holdings"
 			},
 			"search": {
-				"placeholder": "search synths",
+				"placeholder": "search tokens",
 				"empty-results": "No results found. Please try again."
 			}
 		},
@@ -1178,16 +1205,7 @@
 			"swap-currency": "Swap for <0>{{currencyKey}}</0>",
 			"trade-into": "Trade into <0>{{currencyKey}}</0>",
 			"price-adjustment": "Price Adjustment",
-			"deprecated": "Deprecated",
-			"futures-market-oil-short-name": "Oil Perpetual",
-			"futures-market-gold-short-name": "Gold Perpetual",
-			"futures-market-silver-short-name": "Silver Perpetual",
-			"futures-market-ape-short-name": "ApeCoin Perpetual",
-			"futures-market-bnb-short-name": "Binance Coin Perpetual",
-			"futures-market-doge-short-name": "Dogecoin Perpetual",
-			"futures-market-debtratio-short-name": "Debt Ratio Perpetual",
-			"futures-market-xmr-short-name": "Monero Perpetual",
-			"futures-market-op-short-name": "Optimism Perpetual"
+			"deprecated": "Deprecated"
 		},
 		"currency-category": {
 			"crypto": "crypto",
@@ -1320,4 +1338,3 @@
 		"bridge": "Bridge"
 	}
 }
-

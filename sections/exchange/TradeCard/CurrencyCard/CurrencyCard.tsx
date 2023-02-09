@@ -3,8 +3,8 @@ import { FC, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled, { css } from 'styled-components';
 
-import Card from 'components/Card';
-import { FlexDivRowCentered } from 'styles/common';
+import Card, { CardBody } from 'components/Card';
+import { FlexDivRowCentered } from 'components/layout/flex';
 
 import { Side } from '../types';
 import CurrencyCardInput from './CurrencyCardInput';
@@ -23,7 +23,6 @@ type CurrencyCardProps = {
 	className?: string;
 	label: string;
 	disableInput?: boolean;
-	slippagePercent?: Wei | null;
 	isLoading?: boolean;
 	disabled?: boolean;
 };
@@ -34,7 +33,6 @@ const CurrencyCard: FC<CurrencyCardProps> = memo(
 		currencyKey,
 		currencyName,
 		amount,
-		slippagePercent,
 		onAmountChange,
 		walletBalance,
 		onBalanceClick,
@@ -84,7 +82,6 @@ const CurrencyCard: FC<CurrencyCardProps> = memo(
 								currencyKeySelected={!!currencyKey}
 								hasWalletBalance={hasWalletBalance}
 								onBalanceClick={onBalanceClick}
-								slippagePercent={slippagePercent}
 								priceRate={priceRate}
 							/>
 
@@ -120,7 +117,7 @@ const StyledCard = styled(Card)<{ interactive?: boolean }>`
 		`}
 `;
 
-const StyledCardBody = styled(Card.Body)`
+const StyledCardBody = styled(CardBody)`
 	padding: 20px 32px;
 `;
 

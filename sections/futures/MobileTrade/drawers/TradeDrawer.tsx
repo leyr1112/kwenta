@@ -1,8 +1,7 @@
-import { wei } from '@synthetixio/wei';
 import React from 'react';
 import styled, { css } from 'styled-components';
 
-import { PositionSide } from 'queries/futures/types';
+import { PositionSide } from 'sdk/types/futures';
 import TimeDisplay from 'sections/futures/Trades/TimeDisplay';
 import { formatCryptoCurrency, formatDollars } from 'utils/formatters/number';
 
@@ -39,13 +38,13 @@ const TradeDrawer: React.FC<TradeDrawerProps> = ({ trade, closeDrawer }) => {
 				label: 'Price',
 				value: formatDollars(trade.price),
 			},
-			{ label: 'Date/Time', value: <TimeDisplay cellPropsValue={trade.timestamp} horizontal /> },
+			{ label: 'Date/Time', value: <TimeDisplay value={trade.timestamp} horizontal /> },
 			{
 				label: 'PnL',
-				value: trade.pnl.eq(wei(0)) ? (
+				value: trade.pnl.eq(0) ? (
 					<PNL normal>--</PNL>
 				) : (
-					<PNL negative={trade.pnl.lt(wei(0))}>{formatDollars(trade.pnl)}</PNL>
+					<PNL negative={trade.pnl.lt(0)}>{formatDollars(trade.pnl)}</PNL>
 				),
 			},
 			{

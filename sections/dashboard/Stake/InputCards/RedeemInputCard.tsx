@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
 import Button from 'components/Button';
+import { FlexDivRowCentered } from 'components/layout/flex';
+import { StakingCard } from 'sections/dashboard/Stake/card';
 import { useAppDispatch, useAppSelector } from 'state/hooks';
 import { approveKwentaToken, redeemToken } from 'state/staking/actions';
 import {
@@ -11,10 +13,8 @@ import {
 	selectVeKwentaBalance,
 	selectVKwentaBalance,
 } from 'state/staking/selectors';
-import { FlexDivRowCentered, numericValueCSS } from 'styles/common';
+import { numericValueCSS } from 'styles/common';
 import { truncateNumbers } from 'utils/formatters/number';
-
-import { StakingCard } from '../common';
 
 type RedeemInputCardProps = {
 	inputLabel: string;
@@ -60,7 +60,7 @@ const RedeemInputCard: FC<RedeemInputCardProps> = ({ inputLabel, isVKwenta }) =>
 
 	return (
 		<StakingInputCardContainer>
-			<StakeInputContainer>
+			<div>
 				<StakeInputHeader>
 					<div>{inputLabel}</div>
 					<StyledFlexDivRowCentered>
@@ -68,7 +68,7 @@ const RedeemInputCard: FC<RedeemInputCardProps> = ({ inputLabel, isVKwenta }) =>
 						<div className="max">{truncateNumbers(balance, 4)}</div>
 					</StyledFlexDivRowCentered>
 				</StakeInputHeader>
-			</StakeInputContainer>
+			</div>
 			<Button fullWidth variant="flat" size="sm" disabled={balance.eq(0)} onClick={submitRedeem}>
 				{t(buttonTranslationKey)}
 			</Button>
@@ -101,7 +101,5 @@ const StakeInputHeader = styled.div`
 		${numericValueCSS};
 	}
 `;
-
-const StakeInputContainer = styled.div``;
 
 export default RedeemInputCard;

@@ -1,7 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { wei } from '@synthetixio/wei';
 
-import { getEpochDetails, parseEpochData } from 'queries/staking/utils';
+import { getApy, getEpochDetails, parseEpochData } from 'queries/staking/utils';
 import { RootState } from 'state/store';
 import { FetchStatus } from 'state/types';
 import { toWei } from 'utils/formatters/number';
@@ -101,6 +101,16 @@ export const selectIsUnstakingKwenta = createSelector(
 	(unstakeStatus) => unstakeStatus === FetchStatus.Loading
 );
 
+export const selectIsStakedKwenta = createSelector(
+	(state: RootState) => state.staking.stakeStatus,
+	(stakeStatus) => stakeStatus === FetchStatus.Success || stakeStatus === FetchStatus.Error
+);
+
+export const selectIsUnstakedKwenta = createSelector(
+	(state: RootState) => state.staking.unstakeStatus,
+	(unstakeStatus) => unstakeStatus === FetchStatus.Success || unstakeStatus === FetchStatus.Error
+);
+
 export const selectIsStakingEscrowedKwenta = createSelector(
 	(state: RootState) => state.staking.stakeEscrowedStatus,
 	(stakeEscrowedStatus) => stakeEscrowedStatus === FetchStatus.Loading
@@ -109,6 +119,18 @@ export const selectIsStakingEscrowedKwenta = createSelector(
 export const selectIsUnstakingEscrowedKwenta = createSelector(
 	(state: RootState) => state.staking.unstakeEscrowedStatus,
 	(unstakeEscrowedStatus) => unstakeEscrowedStatus === FetchStatus.Loading
+);
+
+export const selectIsStakedEscrowedKwenta = createSelector(
+	(state: RootState) => state.staking.stakeEscrowedStatus,
+	(stakeEscrowedStatus) =>
+		stakeEscrowedStatus === FetchStatus.Success || stakeEscrowedStatus === FetchStatus.Error
+);
+
+export const selectIsUnstakedEscrowedKwenta = createSelector(
+	(state: RootState) => state.staking.unstakeEscrowedStatus,
+	(unstakeEscrowedStatus) =>
+		unstakeEscrowedStatus === FetchStatus.Success || unstakeEscrowedStatus === FetchStatus.Error
 );
 
 export const selectIsGettingReward = createSelector(
@@ -155,4 +177,12 @@ export const selectCanUnstakeEscrowedKwenta = createSelector(
 export const selectEpochPeriod = createSelector(
 	(state: RootState) => state.staking.epochPeriod,
 	wei
+);
+
+export const selectAPY = createSelector(
+	(state: RootState) => state.staking.totalStakedBalance,
+	(state: RootState) => state.staking.weekCounter,
+	(totalStakedBalance, weekCounter) => {
+		return getApy(Number(totalStakedBalance), weekCounter);
+	}
 );

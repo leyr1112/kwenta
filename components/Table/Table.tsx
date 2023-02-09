@@ -6,7 +6,8 @@ import styled, { css } from 'styled-components';
 import SortDownIcon from 'assets/svg/app/caret-down.svg';
 import SortUpIcon from 'assets/svg/app/caret-up.svg';
 import Spinner from 'assets/svg/app/loader.svg';
-import { GridDivCenteredRow } from 'styles/common';
+import { GridDivCenteredRow } from 'components/layout/grid';
+import { Body } from 'components/Text';
 
 import Pagination from './Pagination';
 import TableBodyRow, { TableCell } from './TableBodyRow';
@@ -154,7 +155,7 @@ export const Table: FC<TableProps> = ({
 			<TableContainer>
 				<ReactTable {...getTableProps()} palette={palette} className={className}>
 					{headerGroups.map((headerGroup) => (
-						<TableRow className="table-row" {...headerGroup.getHeaderGroupProps()}>
+						<div className="table-row" {...headerGroup.getHeaderGroupProps()}>
 							{headerGroup.headers.map((column: any) => (
 								<TableCellHead
 									hideHeaders={hideHeaders}
@@ -181,7 +182,7 @@ export const Table: FC<TableProps> = ({
 									)}
 								</TableCellHead>
 							))}
-						</TableRow>
+						</div>
 					))}
 					{isLoading ? (
 						<StyledSpinner />
@@ -233,8 +234,6 @@ const StyledSpinner = styled(Spinner)`
 	display: block;
 	margin: 30px auto;
 `;
-
-export const TableRow = styled.div``;
 
 const TableBody = styled.div`
 	overflow-y: auto;
@@ -291,13 +290,13 @@ const ReactTable = styled.div<{ palette: TablePalette }>`
 				max-height: calc(100% - ${CARD_HEIGHT});
 			}
 			${TableCell} {
-				color: ${(props) => props.theme.colors.selectedTheme.button.text.primary};
+				color: ${(props) => props.theme.colors.selectedTheme.text.value};
 				font-size: 12px;
 				height: ${CARD_HEIGHT};
 				font-family: ${(props) => props.theme.fonts.mono};
 			}
 			${TableCellHead} {
-				color: ${(props) => props.theme.colors.selectedTheme.gray};
+				color: ${(props) => props.theme.colors.selectedTheme.text.label};
 				font-family: ${(props) => props.theme.fonts.regular};
 				border-bottom: ${(props) => props.theme.colors.selectedTheme.border};
 			}
@@ -314,6 +313,17 @@ const StyledSortUpIcon = styled(SortUpIcon)`
 	width: 5px;
 	height: 5px;
 	color: ${(props) => props.theme.colors.selectedTheme.gray};
+`;
+
+export const TableHeader = styled(Body)<{ $small?: boolean }>`
+	text-transform: capitalize;
+	color: ${(props) => props.theme.colors.selectedTheme.text.label};
+
+	${(props) =>
+		props.$small &&
+		css`
+			font-size: 10px;
+		`}
 `;
 
 export default Table;

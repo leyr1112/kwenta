@@ -3,22 +3,29 @@ import { useRouter } from 'next/router';
 import { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CellProps } from 'react-table';
-import { useRecoilValue } from 'recoil';
 import styled from 'styled-components';
 
 import MarketBadge from 'components/Badge/MarketBadge';
 import ChangePercent from 'components/ChangePercent';
+import ColoredPrice from 'components/ColoredPrice';
 import Currency from 'components/Currency';
 import { DesktopOnlyView, MobileOrTabletView } from 'components/Media';
-import Table from 'components/Table';
+import Table, { TableHeader } from 'components/Table';
 import { DEFAULT_CRYPTO_DECIMALS } from 'constants/defaults';
 import ROUTES from 'constants/routes';
 import Connector from 'containers/Connector';
-import { selectFuturesType, selectMarkets, selectMarketVolumes } from 'state/futures/selectors';
+import { FuturesMarketAsset } from 'sdk/types/futures';
+import { getDisplayAsset } from 'sdk/utils/futures';
+import {
+	selectFuturesType,
+	selectMarkets,
+	selectMarketVolumes,
+	selectMarkPrices,
+} from 'state/futures/selectors';
 import { useAppSelector } from 'state/hooks';
-import { selectPrices } from 'state/prices/selectors';
-import { pastRatesState } from 'store/futures';
-import { getSynthDescription, MarketKeyByAsset, FuturesMarketAsset } from 'utils/futures';
+import { selectPreviousDayPrices, selectOffchainPricesInfo } from 'state/prices/selectors';
+import { formatDollars } from 'utils/formatters/number';
+import { getSynthDescription, MarketKeyByAsset } from 'utils/futures';
 
 const FuturesMarketsTable: FC = () => {
 	const { t } = useTranslation();
@@ -26,17 +33,19 @@ const FuturesMarketsTable: FC = () => {
 	const { synthsMap } = Connector.useContainer();
 
 	const futuresMarkets = useAppSelector(selectMarkets);
-	const pastRates = useRecoilValue(pastRatesState);
+	const pastRates = useAppSelector(selectPreviousDayPrices);
 	const futuresVolumes = useAppSelector(selectMarketVolumes);
 	const accountType = useAppSelector(selectFuturesType);
-	const prices = useAppSelector(selectPrices);
+	const pricesInfo = useAppSelector(selectOffchainPricesInfo);
+	const markPrices = useAppSelector(selectMarkPrices);
 
 	let data = useMemo(() => {
 		return futuresMarkets.map((market) => {
 			const description = getSynthDescription(market.asset, synthsMap, t);
 			const volume = futuresVolumes[market.marketKey]?.volume;
-			const pastPrice = pastRates.find((price) => price.synth === market.asset);
-			const marketPrice = prices[market.asset]?.offChain ?? prices[market.asset]?.onChain ?? wei(0);
+			const assetPriceInfo = pricesInfo[market.asset];
+			const pastPrice = pastRates.find((price) => price.synth === getDisplayAsset(market.asset));
+			const marketPrice = markPrices[market.marketKey] ?? wei(0);
 
 			return {
 				asset: market.asset,
@@ -44,20 +53,22 @@ const FuturesMarketsTable: FC = () => {
 				synth: synthsMap[market.asset],
 				description,
 				price: marketPrice,
+				priceInfo: assetPriceInfo,
 				volume: volume?.toNumber() ?? 0,
-				pastPrice: pastPrice?.price,
-				priceChange: pastPrice?.price && marketPrice.sub(pastPrice?.price).div(marketPrice),
+				pastPrice: pastPrice?.rate,
+				priceChange:
+					pastPrice?.rate && marketPrice.gt(0) && marketPrice.sub(pastPrice?.rate).div(marketPrice),
 				fundingRate: market.currentFundingRate ?? null,
 				openInterest: market.marketSize.mul(marketPrice),
 				openInterestNative: market.marketSize,
-				longInterest: market.marketSize.add(market.marketSkew).div('2').abs().mul(marketPrice),
-				shortInterest: market.marketSize.sub(market.marketSkew).div('2').abs().mul(marketPrice),
+				longInterest: market.openInterest.longUSD,
+				shortInterest: market.openInterest.shortUSD,
 				marketSkew: market.marketSkew,
 				isSuspended: market.isSuspended,
 				marketClosureReason: market.marketClosureReason,
 			};
 		});
-	}, [synthsMap, futuresMarkets, pastRates, futuresVolumes, prices, t]);
+	}, [synthsMap, futuresMarkets, pastRates, futuresVolumes, markPrices, pricesInfo, t]);
 
 	return (
 		<>
@@ -77,14 +88,12 @@ const FuturesMarketsTable: FC = () => {
 									<TableHeader>{t('dashboard.overview.futures-markets-table.market')}</TableHeader>
 								),
 								accessor: 'market',
-								Cell: (cellProps: CellProps<any>) => {
+								Cell: (cellProps: CellProps<typeof data[number]>) => {
 									return (
 										<MarketContainer>
 											<IconContainer>
 												<StyledCurrencyIcon
-													currencyKey={
-														MarketKeyByAsset[cellProps.row.original.asset as FuturesMarketAsset]
-													}
+													currencyKey={MarketKeyByAsset[cellProps.row.original.asset]}
 												/>
 											</IconContainer>
 											<StyledText>
@@ -104,23 +113,19 @@ const FuturesMarketsTable: FC = () => {
 							{
 								Header: (
 									<TableHeader>
-										{t('dashboard.overview.futures-markets-table.oracle-price')}
+										{t('dashboard.overview.futures-markets-table.mark-price')}
 									</TableHeader>
 								),
-								accessor: 'oraclePrice',
-								Cell: (cellProps: CellProps<any>) => {
+								accessor: 'price',
+								Cell: (cellProps: CellProps<typeof data[number]>) => {
 									const formatOptions = {
 										minDecimals: DEFAULT_CRYPTO_DECIMALS,
 										isAssetPrice: true,
 									};
 									return (
-										<Currency.Price
-											currencyKey={'sUSD'}
-											price={cellProps.row.original.price}
-											sign={'$'}
-											conversionRate={1}
-											formatOptions={formatOptions}
-										/>
+										<ColoredPrice priceInfo={cellProps.row.original.priceInfo}>
+											{formatDollars(cellProps.row.original.price, formatOptions)}
+										</ColoredPrice>
 									);
 								},
 								width: 130,
@@ -141,7 +146,7 @@ const FuturesMarketsTable: FC = () => {
 									</TableHeader>
 								),
 								accessor: 'priceChange',
-								Cell: (cellProps: CellProps<any>) => {
+								Cell: (cellProps: CellProps<typeof data[number]>) => {
 									return (
 										<ChangePercent
 											value={cellProps.row.original.priceChange}
@@ -168,7 +173,7 @@ const FuturesMarketsTable: FC = () => {
 									</TableHeader>
 								),
 								accessor: 'fundingRate',
-								Cell: (cellProps: CellProps<any>) => {
+								Cell: (cellProps: CellProps<typeof data[number]>) => {
 									return (
 										<ChangePercent
 											value={cellProps.row.original.fundingRate}
@@ -196,19 +201,19 @@ const FuturesMarketsTable: FC = () => {
 									</TableHeader>
 								),
 								accessor: 'openInterest',
-								Cell: (cellProps: CellProps<any>) => {
+								Cell: (cellProps: CellProps<typeof data[number]>) => {
 									return (
 										<OpenInterestContainer>
 											<StyledLongPrice
-												currencyKey={'sUSD'}
+												currencyKey="sUSD"
 												price={cellProps.row.original.longInterest}
-												sign={'$'}
+												sign="$"
 												truncate
 											/>
 											<StyledShortPrice
-												currencyKey={'sUSD'}
+												currencyKey="sUSD"
 												price={cellProps.row.original.shortInterest}
-												sign={'$'}
+												sign="$"
 												truncate
 											/>
 										</OpenInterestContainer>
@@ -234,12 +239,12 @@ const FuturesMarketsTable: FC = () => {
 									</TableHeader>
 								),
 								accessor: 'dailyVolume',
-								Cell: (cellProps: CellProps<any>) => {
+								Cell: (cellProps: CellProps<typeof data[number]>) => {
 									return (
 										<Currency.Price
-											currencyKey={'sUSD'}
+											currencyKey="sUSD"
 											price={cellProps.row.original.volume}
-											sign={'$'}
+											sign="$"
 											conversionRate={1}
 											truncate
 										/>
@@ -276,7 +281,7 @@ const FuturesMarketsTable: FC = () => {
 								</div>
 							),
 							accessor: 'market',
-							Cell: (cellProps: CellProps<any>) => {
+							Cell: (cellProps: CellProps<typeof data[number]>) => {
 								return (
 									<div>
 										<MarketContainer>
@@ -289,7 +294,7 @@ const FuturesMarketsTable: FC = () => {
 											</IconContainer>
 											<StyledText>{cellProps.row.original.market}</StyledText>
 											<Currency.Price
-												currencyKey={'sUSD'}
+												currencyKey="sUSD"
 												price={cellProps.row.original.price}
 												sign="$"
 												formatOptions={{ minDecimals: DEFAULT_CRYPTO_DECIMALS, isAssetPrice: true }}
@@ -312,11 +317,11 @@ const FuturesMarketsTable: FC = () => {
 								</div>
 							),
 							accessor: 'openInterest',
-							Cell: (cellProps: CellProps<any>) => {
+							Cell: (cellProps: CellProps<typeof data[number]>) => {
 								return (
 									<div>
 										<Currency.Price
-											currencyKey={'sUSD'}
+											currencyKey="sUSD"
 											price={cellProps.row.original.openInterest}
 											sign="$"
 											truncate
@@ -346,7 +351,7 @@ const FuturesMarketsTable: FC = () => {
 								</div>
 							),
 							accessor: '24h-change',
-							Cell: (cellProps: CellProps<any>) => {
+							Cell: (cellProps: CellProps<typeof data[number]>) => {
 								return (
 									<div>
 										<div>
@@ -358,7 +363,7 @@ const FuturesMarketsTable: FC = () => {
 										</div>
 										<div>
 											<Currency.Price
-												currencyKey={'sUSD'}
+												currencyKey="sUSD"
 												price={cellProps.row.original.volume ?? 0}
 												sign="$"
 												truncate
@@ -410,8 +415,7 @@ const StyledValue = styled.div`
 `;
 
 const TableContainer = styled.div`
-	margin-top: 16px;
-	margin-bottom: '40px';
+	margin: 16px 0 40px;
 
 	.paused {
 		color: ${(props) => props.theme.colors.selectedTheme.gray};
@@ -420,10 +424,6 @@ const TableContainer = styled.div`
 
 const StyledTable = styled(Table)`
 	margin-bottom: 20px;
-`;
-
-const TableHeader = styled.div`
-	color: ${(props) => props.theme.colors.selectedTheme.gray};
 `;
 
 const StyledText = styled.div`

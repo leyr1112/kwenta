@@ -5,11 +5,14 @@ const common = {
 	primaryGold: '#C9975B',
 	primaryRed: '#EF6868',
 	primaryGreen: '#7FD482',
+	primaryGray: '#B1B1B1',
 	secondaryGray: '#515151',
+	neautralGray: '#A9A8A6',
 	tertiaryGray: '#999999',
 	secondaryGold: '#E4B378',
 	primaryYellow: '#FFB800',
 	black: '#171002',
+	darkYellow: '#3E2D00',
 	dark: {
 		white: '#ECE8E3',
 		yellow: '#FFB800',
@@ -24,6 +27,7 @@ const common = {
 		black: '#171002',
 		gray: '#787878',
 		gray2: '#3F3F3F',
+		rewardTitle: '#ECE8E3',
 	},
 	light: {
 		white: '#F2F2F2',
@@ -39,6 +43,7 @@ const common = {
 		black: '#171002',
 		gray: '#515151',
 		gray2: '#D2D2D2', // TODO: Update once added to designs
+		rewardTitle: '#171002',
 	},
 };
 

@@ -3,27 +3,30 @@ import { useRouter } from 'next/router';
 import { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CellProps } from 'react-table';
-import styled from 'styled-components';
+import styled, { useTheme } from 'styled-components';
 
+import LinkArrow from 'assets/svg/app/link-arrow.svg';
 import MarketBadge from 'components/Badge/MarketBadge';
 import ChangePercent from 'components/ChangePercent';
 import Currency from 'components/Currency';
 import { DesktopOnlyView, MobileOrTabletView } from 'components/Media';
 import Table, { TableNoResults } from 'components/Table';
-import PositionType from 'components/Text/PositionType';
+import { Body } from 'components/Text';
 import { DEFAULT_CRYPTO_DECIMALS } from 'constants/defaults';
+import { EXTERNAL_LINKS } from 'constants/links';
 import { NO_VALUE } from 'constants/placeholder';
 import ROUTES from 'constants/routes';
 import Connector from 'containers/Connector';
 import useIsL2 from 'hooks/useIsL2';
 import useNetworkSwitcher from 'hooks/useNetworkSwitcher';
 import { FuturesAccountType } from 'queries/futures/subgraph';
+import PositionType from 'sections/futures/PositionType';
 import {
 	selectCrossMarginPositions,
-	selectFuturesPositionHistory,
 	selectIsolatedMarginPositions,
 	selectMarketAsset,
 	selectMarkets,
+	selectPositionHistory,
 } from 'state/futures/selectors';
 import { useAppSelector } from 'state/hooks';
 import { formatNumber } from 'utils/formatters/number';
@@ -39,8 +42,9 @@ type FuturesPositionTableProps = {
 const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 	accountType,
 	showCurrentMarket = true,
-}: FuturesPositionTableProps) => {
+}) => {
 	const { t } = useTranslation();
+	const theme = useTheme();
 	const { synthsMap } = Connector.useContainer();
 	const router = useRouter();
 	const { switchToL2 } = useNetworkSwitcher();
@@ -49,7 +53,7 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 
 	const isolatedPositions = useAppSelector(selectIsolatedMarginPositions);
 	const crossMarginPositions = useAppSelector(selectCrossMarginPositions);
-	const positionHistory = useAppSelector(selectFuturesPositionHistory);
+	const positionHistory = useAppSelector(selectPositionHistory);
 	const currentMarket = useAppSelector(selectMarketAsset);
 	const futuresMarkets = useAppSelector(selectMarkets);
 
@@ -59,8 +63,8 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 			.map((position) => {
 				const market = futuresMarkets.find((market) => market.asset === position.asset);
 				const description = getSynthDescription(position.asset, synthsMap, t);
-				const thisPositionHistory = positionHistory.find((positionHistory) => {
-					return positionHistory.isOpen && positionHistory.asset === position.asset;
+				const thisPositionHistory = positionHistory.find((ph) => {
+					return ph.isOpen && ph.asset === position.asset;
 				});
 
 				return {
@@ -72,7 +76,9 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 			})
 			.filter(
 				(position) =>
-					position.position && (position?.market?.asset !== currentMarket || showCurrentMarket)
+					position.position &&
+					position.market &&
+					(position?.market?.asset !== currentMarket || showCurrentMarket)
 			);
 	}, [
 		isolatedPositions,
@@ -89,7 +95,7 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 	return (
 		<>
 			<DesktopOnlyView>
-				<TableContainer>
+				<div>
 					<Table
 						data={data}
 						showPagination
@@ -162,14 +168,14 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 								accessor: 'notionalValue',
 								Cell: (cellProps: CellProps<any>) => {
 									const formatOptions = cellProps.row.original.position.notionalValue.gte(1e6)
-										? { truncation: { divisor: 1e6, unit: 'M' } }
+										? { truncate: true }
 										: {};
 
 									return (
 										<Currency.Price
-											currencyKey={'sUSD'}
+											currencyKey="sUSD"
 											price={cellProps.row.original.position.notionalValue}
-											sign={'$'}
+											sign="$"
 											conversionRate={1}
 											formatOptions={formatOptions}
 										/>
@@ -204,9 +210,9 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 											<ChangePercent value={cellProps.row.original.position.pnlPct} />
 											<div>
 												<Currency.Price
-													currencyKey={'sUSD'}
+													currencyKey="sUSD"
 													price={cellProps.row.original.position.pnl}
-													sign={'$'}
+													sign="$"
 													conversionRate={1}
 												/>
 											</div>
@@ -231,9 +237,9 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 										<DefaultCell>{NO_VALUE}</DefaultCell>
 									) : (
 										<Currency.Price
-											currencyKey={'sUSD'}
+											currencyKey="sUSD"
 											price={cellProps.row.original.avgEntryPrice}
-											sign={'$'}
+											sign="$"
 											conversionRate={1}
 											formatOptions={formatOptions}
 										/>
@@ -255,9 +261,9 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 									};
 									return (
 										<Currency.Price
-											currencyKey={'sUSD'}
+											currencyKey="sUSD"
 											price={cellProps.row.original.position.liquidationPrice}
-											sign={'$'}
+											sign="$"
 											conversionRate={1}
 											formatOptions={formatOptions}
 										/>
@@ -267,7 +273,13 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 							},
 						]}
 					/>
-				</TableContainer>
+					<StyledBody>
+						<a target="_blank" rel="noopener noreferrer" href={EXTERNAL_LINKS.Trade.V1}>
+							{t('dashboard.overview.futures-positions-table.legacy-link')}{' '}
+							<StyledArrow fill={theme.colors.selectedTheme.text.value} />
+						</a>
+					</StyledBody>
+				</div>
 			</DesktopOnlyView>
 			<MobileOrTabletView>
 				<OpenPositionsHeader>
@@ -296,10 +308,29 @@ const FuturesPositionsTable: FC<FuturesPositionTableProps> = ({
 						))
 					)}
 				</div>
+				<StyledBody>
+					<a target="_blank" rel="noopener noreferrer" href={EXTERNAL_LINKS.Trade.V1}>
+						{t('dashboard.overview.futures-positions-table.legacy-link')}{' '}
+						<StyledArrow fill={theme.colors.selectedTheme.text.value} />
+					</a>
+				</StyledBody>
 			</MobileOrTabletView>
 		</>
 	);
 };
+
+const StyledBody = styled(Body)`
+	margin-top: 8px;
+	text-align: center;
+	text-decoration: underline;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+`;
+
+const StyledArrow = styled(LinkArrow)`
+	margin-left: 2px;
+`;
 
 const PnlContainer = styled.div`
 	display: flex;
@@ -328,8 +359,6 @@ const StyledValue = styled.div`
 const DefaultCell = styled.p`
 	color: ${(props) => props.theme.colors.selectedTheme.button.text.primary};
 `;
-
-const TableContainer = styled.div``;
 
 const TableHeader = styled.div`
 	color: ${(props) => props.theme.colors.selectedTheme.gray};
