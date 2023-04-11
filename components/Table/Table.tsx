@@ -243,7 +243,7 @@ const TableContainer = styled.div`
 `;
 
 const TableBody = styled.div`
-	overflow-y: auto;
+	overflow-y: scroll;
 	overflow-x: hidden;
 `;
 
