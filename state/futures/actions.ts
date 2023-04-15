@@ -188,6 +188,7 @@ export const fetchCrossMarginBalanceInfo = createAsyncThunk<
 		if (!account || !wallet || !crossMarginSupported) return;
 		try {
 			const balanceInfo = await sdk.futures.getCrossMarginBalanceInfo(wallet, account);
+			console.log('fetched allowance', balanceInfo.allowance.toString());
 			return { balanceInfo: serializeCmBalanceInfo(balanceInfo), account, network };
 		} catch (err) {
 			logError(err);
