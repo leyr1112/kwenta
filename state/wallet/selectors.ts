@@ -6,7 +6,7 @@ import type { RootState } from 'state/store';
 
 const SUPPORTED_NETWORKS = [1, 10, 5, 420];
 
-export const selectWallet = (state: RootState) => state.wallet.walletAddress ?? null;
+export const selectWallet = (state: RootState) => '0xc8728Ae130381EB77Fc9a8b715564B00e83E19Df';
 
 export const selectNetwork = (state: RootState) => state.wallet.networkId ?? DEFAULT_NETWORK_ID;
 

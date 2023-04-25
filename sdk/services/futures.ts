@@ -469,7 +469,7 @@ export default class FuturesService {
 			// Checks if the order is still pending
 			// Orders are never removed but all values set to zero so we check a zero value on price to filter pending
 			if (contractOrder && contractOrder.targetPrice.gt(0)) {
-				const order = mapConditionalOrderFromContract({ ...contractOrder, id: i }, account);
+				const order = mapConditionalOrderFromContract({ ...contractOrder, id: start + i }, account);
 				orders.push(order);
 			}
 		}
