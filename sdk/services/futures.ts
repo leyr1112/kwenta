@@ -944,38 +944,38 @@ export default class FuturesService {
 			}
 		}
 
-		if (cancelPendingReduceOrders) {
-			// Remove all pending reduce only orders if instructed
-			existingOrdersForMarket.forEach((o) => {
-				commands.push(AccountExecuteFunctions.GELATO_CANCEL_CONDITIONAL_ORDER);
-				inputs.push(defaultAbiCoder.encode(['uint256'], [o.id]));
-			});
-		} else {
-			if (order.takeProfit) {
-				// Remove only existing take profit to overwrite
-				const existingTakeProfits = existingOrdersForMarket.filter(
-					(o) => o.size.abs().eq(SL_TP_MAX_SIZE) && o.orderType === ConditionalOrderTypeEnum.LIMIT
-				);
-				if (existingTakeProfits.length) {
-					existingTakeProfits.forEach((tp) => {
-						commands.push(AccountExecuteFunctions.GELATO_CANCEL_CONDITIONAL_ORDER);
-						inputs.push(defaultAbiCoder.encode(['uint256'], [tp.id]));
-					});
-				}
-			}
-			if (order.stopLoss) {
-				// Remove only existing stop loss to overwrite
-				const existingStopLosses = existingOrdersForMarket.filter(
-					(o) => o.size.abs().eq(SL_TP_MAX_SIZE) && o.orderType === ConditionalOrderTypeEnum.STOP
-				);
-				if (existingStopLosses.length) {
-					existingStopLosses.forEach((sl) => {
-						commands.push(AccountExecuteFunctions.GELATO_CANCEL_CONDITIONAL_ORDER);
-						inputs.push(defaultAbiCoder.encode(['uint256'], [sl.id]));
-					});
-				}
-			}
-		}
+		// if (cancelPendingReduceOrders) {
+		// 	// Remove all pending reduce only orders if instructed
+		// 	existingOrdersForMarket.forEach((o) => {
+		// 		commands.push(AccountExecuteFunctions.GELATO_CANCEL_CONDITIONAL_ORDER);
+		// 		inputs.push(defaultAbiCoder.encode(['uint256'], [o.id]));
+		// 	});
+		// } else {
+		// 	if (order.takeProfit) {
+		// 		// Remove only existing take profit to overwrite
+		// 		const existingTakeProfits = existingOrdersForMarket.filter(
+		// 			(o) => o.size.abs().eq(SL_TP_MAX_SIZE) && o.orderType === ConditionalOrderTypeEnum.LIMIT
+		// 		);
+		// 		if (existingTakeProfits.length) {
+		// 			existingTakeProfits.forEach((tp) => {
+		// 				commands.push(AccountExecuteFunctions.GELATO_CANCEL_CONDITIONAL_ORDER);
+		// 				inputs.push(defaultAbiCoder.encode(['uint256'], [tp.id]));
+		// 			});
+		// 		}
+		// 	}
+		// 	if (order.stopLoss) {
+		// 		// Remove only existing stop loss to overwrite
+		// 		const existingStopLosses = existingOrdersForMarket.filter(
+		// 			(o) => o.size.abs().eq(SL_TP_MAX_SIZE) && o.orderType === ConditionalOrderTypeEnum.STOP
+		// 		);
+		// 		if (existingStopLosses.length) {
+		// 			existingStopLosses.forEach((sl) => {
+		// 				commands.push(AccountExecuteFunctions.GELATO_CANCEL_CONDITIONAL_ORDER);
+		// 				inputs.push(defaultAbiCoder.encode(['uint256'], [sl.id]));
+		// 			});
+		// 		}
+		// 	}
+		// }
 
 		return this.sdk.transactions.createContractTxn(
 			crossMarginAccountContract,
